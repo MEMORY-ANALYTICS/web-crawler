@@ -2,6 +2,7 @@ from json import loads
 from time import sleep
 from urllib3 import PoolManager
 import os
+import platform as plat
 import pandas as pd;
 import psutil as psutil;
 import mysql.connector
@@ -36,7 +37,7 @@ def dados_ohm():
 
     conexao = mysql.connector.connect(
             host = "localhost",
-            user = "crawlerOHM",
+            user = "urubu100",
             password = "urubu100",
             port = 3306,
             database = "dadosCrawler"
@@ -58,7 +59,7 @@ def dados_ohm():
         return float(valor[0:4].replace(",", '.'))
 
     with PoolManager() as pool:
-        response = pool.request('GET', 'http://localhost:9000/data.json')
+        response = pool.request('GET', 'http://192.168.15.61:9000/data.json') #Configurar o ohm
         data = loads(response.data.decode('utf-8'))
         core_count = psutil.cpu_count(logical=False)
         thread_count =psutil.cpu_count(logical=True)
@@ -67,15 +68,17 @@ def dados_ohm():
             name_mainboard = data['Children'][0]['Children'][0]['Text']
             name_cpu = data['Children'][0]['Children'][1]['Text']
 
-            dataset_cpu= {
-            }
+            dataset_cpu= {}
 
-            dataset_cpuDois= {
-            }        
+            dataset_cpuDois= {}        
 
             vars_core_speed = {}
+            
+
             for i in range(core_count + 1):
                 if(i == 0) :
+
+                    print((data['Children'][0]['Children'][1]['Children'][0]['Children'][i]['Min']))
                     vars_core_speed["dataset_bus_speed"] = {
                         'Min' : f"{conversor(data['Children'][0]['Children'][1]['Children'][0]['Children'][i]['Min'])} MHz",
                         'Atual' : f"{conversor(data['Children'][0]['Children'][1]['Children'][0]['Children'][i]['Value'])} MHz",
@@ -151,17 +154,17 @@ def dados_ohm():
                 'Max': f"{conversorPercent(data['Children'][0]['Children'][1]['Children'][3]['Children'][2]['Max'])} W"
             }
             comando.execute(f"INSERT INTO Potencia VALUES(null, 'cpuGraphics', {conversorPercent(data['Children'][0]['Children'][1]['Children'][3]['Children'][2]['Value'])})")
-            dataset_cpuDois["CPU DRAM"] = {
-                'Min' : f"{conversorPercent(data['Children'][0]['Children'][1]['Children'][3]['Children'][3]['Min'])} W",
-                'Atual' : f"{conversorPercent(data['Children'][0]['Children'][1]['Children'][3]['Children'][3]['Value'])} W",
-                'Max': f"{conversorPercent(data['Children'][0]['Children'][1]['Children'][3]['Children'][3]['Max'])} W"
+            dataset_cpuDois["CPU DRAM"] = { 
+                'Min' : f"{conversorPercent(data['Children'][0]['Children'][1]['Children'][3]['Children'][2]['Min'])} W", # Mudei o final de 3 para 2
+                'Atual' : f"{conversorPercent(data['Children'][0]['Children'][1]['Children'][3]['Children'][2]['Value'])} W",
+                'Max': f"{conversorPercent(data['Children'][0]['Children'][1]['Children'][3]['Children'][2]['Max'])} W"
             }
-            comando.execute(f"INSERT INTO Potencia VALUES(null, 'cpuDram', {conversorPercent(data['Children'][0]['Children'][1]['Children'][3]['Children'][3]['Value'])})")
+            comando.execute(f"INSERT INTO Potencia VALUES(null, 'cpuDram', {conversorPercent(data['Children'][0]['Children'][1]['Children'][3]['Children'][2]['Value'])})")
             
-            file = open('C:/Users/mined/OneDrive/Documentos/crawler/dados-crawler.csv', mode='a', newline='')
+            file = open('C:/Users/Gabriel B/Documents/crawler/dados-crawler.csv', mode='a', newline='')
             writer = csv.writer(file)
-            if os.path.exists("C:/Users/mined/OneDrive/Documentos/crawler/dados-crawler.csv"):
-                with open("C:/Users/mined/OneDrive/Documentos/crawler/dados-crawler.csv", 'r') as f:
+            if os.path.exists("C:/Users/Gabriel B/Documents/crawler/dados-crawler.csv"): #mudei o caminho
+                with open("C:/Users/Gabriel B/Documents/crawler/dados-crawler.csv", 'r') as f: #mudei o caminho
                     if len(f.readlines()) == 0:
                         writer.writerow(["Temperatura da CPU", "Uso da CPU",])
                     else:
@@ -196,31 +199,36 @@ def dados_ohm():
 
 
 def painel_principal():
-    nome_so = os.uname()[0]
+    nome_so = (plat.uname().system)
 
-    while True:
-        print(
-            """
+    
+    print(
+        """
 
-            ------------------------------------------------------------
-            Bem-vindo, qual tipo de informação você gostaria de receber:
+        ------------------------------------------------------------
+        Bem-vindo, qual tipo de informação você gostaria de receber:
 
-            1 - Monitoramento da temperatura do servidor com OHM
-            2 - Monitoramento do ambiente do servidor
-            """
+        1 - Monitoramento da temperatura do servidor com OHM
+        2 - Monitoramento do ambiente do servidor
+        """
         )
-        resposta_usuario = input("Digite sua resposta: ")
+    
+    resposta_usuario = int(input("Digite sua resposta: "))
 
-        if resposta_usuario == 1:
-            if nome_so == "Windows":
-                dados_ohm()
-            else:
-                print("O seu sistema operacional não suporta este tipo de monitoramento!\n")
-            
-        elif resposta_usuario == 2:
-            dados_ambiente()
+    if resposta_usuario == 1:
+        if nome_so == "Windows":
+            dados_ohm()
         else:
-            print("Número inválido!\n")
+            print("O seu sistema operacional não suporta este tipo de monitoramento!\n")
+            painel_principal()
+            
+    elif resposta_usuario == 2:
+        dados_ambiente()
+    else: 
+        print("Número inválido!")
+        painel_principal()
+    
+            
 
 
 painel_principal()
