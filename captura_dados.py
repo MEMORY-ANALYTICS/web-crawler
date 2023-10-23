@@ -10,7 +10,7 @@ import mysql.connector.errorcode
 import csv
 import requests
 import gzip
-
+import unicodedata
 
 def dados_ambiente():
     
@@ -21,13 +21,22 @@ def dados_ambiente():
     with open('2023.zip', 'wb') as f:
         f.write(download.content)
 
-    f = gzip.open('INMET_S_RS_A801_PORTO ALEGRE - JARDIM BOTANICO_01-01-2022_A_31-12-2022.CSV', 'rt')
+    f = gzip.open('INMET_S_RS_A801_PORTO ALEGRE - JARDIM BOTANICO_01-01-2022_A_31-12-2023.CSV', 'rt')
+    
     
     resposta_usuario = input("Deseja voltar? y/n")
     if resposta_usuario == "y":
         painel_principal()
     else:
         print("Programa encerrado!")
+
+
+#    url = "https://www.climatempo.com.br/json/myclimatempo/user/weatherNow?idlocale=3477"
+
+#   def remover_acentos(text):
+#      return "".join((c for c in unicodedata.normalize('NFD',text) if unicodedata.category(c) != "Mn"))
+
+
 
 
 
@@ -59,7 +68,7 @@ def dados_ohm():
         return float(valor[0:4].replace(",", '.'))
 
     with PoolManager() as pool:
-        response = pool.request('GET', 'http://192.168.15.61:9000/data.json') #Configurar o ohm
+        response = pool.request('GET', 'http://10.18.34.141:9000/data.json') #Configurar o ohm
         data = loads(response.data.decode('utf-8'))
         core_count = psutil.cpu_count(logical=False)
         thread_count =psutil.cpu_count(logical=True)
@@ -193,8 +202,10 @@ def dados_ohm():
             conexao.commit()
             sleep(1)
             os.system("cls")
-
-
+            resposta_usuario = input("Deseja voltar? y/n \n")
+            if resposta_usuario == "y":
+                painel_principal()
+            
 
 
 
@@ -203,15 +214,15 @@ def painel_principal():
 
     
     print(
-        """
+    """
 
-        ------------------------------------------------------------
-        Bem-vindo, qual tipo de informação você gostaria de receber:
+    ------------------------------------------------------------
+    Bem-vindo, qual tipo de informação você gostaria de receber:
 
-        1 - Monitoramento da temperatura do servidor com OHM
-        2 - Monitoramento do ambiente do servidor
-        """
-        )
+    1 - Monitoramento da temperatura do servidor com OHM
+    2 - Monitoramento do ambiente do servidor
+    """
+    )
     
     resposta_usuario = int(input("Digite sua resposta: "))
 
@@ -225,7 +236,7 @@ def painel_principal():
     elif resposta_usuario == 2:
         dados_ambiente()
     else: 
-        print("Número inválido!")
+        print("\nNúmero inválido!")
         painel_principal()
     
             
