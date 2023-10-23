@@ -11,17 +11,64 @@ import csv
 import requests
 import gzip
 import unicodedata
+import time
+
+def remover_acentos(text):
+    return ''.join((c for c in unicodedata.normalize('NFD', text) if unicodedata.category(c) != 'Mn'))
+
+def get_and_process_data(url, output_csv_filename):
+    while True:
+        resposta = requests.get(url)
+        
+        if resposta.status_code == 200:
+            data = resposta.json()
+            if data and "data" in data[0] and "weather" in data[0]["data"][0]:
+                weather_info = data[0]["data"][0]["weather"][0]
+                cidade = remover_acentos(data[0]["data"][0]["locale"]["name"])   # Remove acentos
+                temperatura = weather_info.get('temperature', 'N/A')
+                umidade = weather_info.get('humidity', 'N/A')
+                pressao = weather_info.get('pressure', 'N/A')
+                data_hora_json = weather_info.get('date', 'N/A')
+
+                # Separar a data e a hora do campo 'date' do JSON
+                data_json, hora_json = data_hora_json.split()
+
+                # Escrever os dados em um arquivo CSV
+                with open(output_csv_filename, 'a', newline='') as csvfile:
+                    csv_writer = csv.writer(csvfile)
+                    headers = ['Data', 'Hora', 'Cidade', 'Temperatura', 'Umidade', 'Pressao']
+                    csv_writer.writerow(headers)
+                    csv_writer.writerow([data_json, hora_json, cidade, temperatura, umidade, pressao])
+
+                    sql = "insert into clima (dataJson, horaJson, cidade, temperatura, umidade, pressao) values (%s, %s, %s, %s, %s, %s)"
+                    dados = ([data_json, hora_json, cidade, temperatura, umidade, pressao])
+                    #cursor.execute(sql,dados)
+                    #mydb.commit()
+
+                print(f'Dados salvos em {output_csv_filename}')
+            else:
+                print("Os dados necessários estão ausentes no JSON.")
+        else:
+            print("Falha ao obter os dados do JSON da página da web.")
+
+        # Defina o intervalo de tempo (em segundos) entre as solicitações
+        intervalo = 3600  
+        time.sleep(intervalo)
+
+# URL da página da web a ser rastreada
+url = "https://www.climatempo.com.br/json/myclimatempo/user/weatherNow?idlocale=3477"
+
+# Nome do arquivo CSV de saída
+output_csv_filename = "dados_climatempo.csv"
+
+# Chamada da função para obter e processar os dados em um loop
+
+
+
 
 def dados_ambiente():
     
-    CSV_URL="https://portal.inmet.gov.br/uploads/dadoshistoricos/2023.zip"
-
-    with requests.Session() as s:
-        download = s.get(CSV_URL)
-    with open('2023.zip', 'wb') as f:
-        f.write(download.content)
-
-    f = gzip.open('INMET_S_RS_A801_PORTO ALEGRE - JARDIM BOTANICO_01-01-2022_A_31-12-2023.CSV', 'rt')
+    
     
     
     resposta_usuario = input("Deseja voltar? y/n")
@@ -234,7 +281,7 @@ def painel_principal():
             painel_principal()
             
     elif resposta_usuario == 2:
-        dados_ambiente()
+        get_and_process_data(url, output_csv_filename)
     else: 
         print("\nNúmero inválido!")
         painel_principal()
